@@ -1,0 +1,38 @@
+name: Update ITEE Resources
+
+on:
+  schedule:
+    - cron: "0 0,12 * * *" # 2 checks
+  workflow_dispatch:    
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - name: fetching LFS files
+        run: | 
+          git lfs pull
+      - name: checking for updates
+        run: |
+          python -m itee_hub --update-questions --update-results
+        shell: bash
+      - name: posting updates to telegram chat
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          python -m itee_hub --update-telegram ${{ secrets.CHAT_ID }}
+        shell: bash
+      - name: pushing commits (if neccessary)
+        run: |          
+          chmod +x commit.sh
+          sh commit.sh
+        shell: bash        
